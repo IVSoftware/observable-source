@@ -14,12 +14,16 @@ namespace observable_source
             collection.Add(new Item { Description = "Item 1" });
             collection.Add(new Item { Description = "Item 2" });
 
+            Console.WriteLine($"Min: {collection.Min(_ => _.Id)}");
+            Console.WriteLine($"Max: {collection.Max(_ => _.Id)}");
+
             Console.ReadKey();
         }
     }
     public interface ISourceAware
     {
         ICollection Source { get; set; }
+        string Id { get; }
     }
     public class Item : ISourceAware
     {
@@ -27,6 +31,8 @@ namespace observable_source
         public ICollection Source { get; set; }
         public CustomObservableCollection<Item> ParentCollection =>
             (CustomObservableCollection<Item>)Source;
+        public string Id { get; set; }
+            = Guid.NewGuid().ToString();    // Automatic unique initializastion if you want it.
     }
     public class CustomObservableCollection<T> : ObservableCollection<T> where T: ISourceAware
     {
@@ -35,10 +41,11 @@ namespace observable_source
             base.OnCollectionChanged(e);
             if(e.Action.Equals(NotifyCollectionChangedAction.Add)) 
             {
-                foreach (Item item in e.NewItems)
+                foreach (ISourceAware iitem in e.NewItems)
                 {
-                    item.Source = this;
+                    iitem.Source = this;
     #if DEBUG
+                    var item = (Item)iitem;
                     // Try a loopback test
                     Console.WriteLine(
                         $"Index of {item.Description} is {item.ParentCollection.IndexOf(item)}");
